@@ -377,9 +377,9 @@ Plot2D::XTicLin(QPainter* painter, QFontMetrics fontMetrics) {
             fmant = isig * fmant;
         }
         if(double(isx*fmant) <= -10.0)
-            Label.sprintf("% 6.2f", double(isx*fmant));
+            Label = QString("").arg(double(isx*fmant), 6, 'f', 2);
         else
-            Label.sprintf("% 6.3f", double(isx*fmant));
+            Label = QString("").arg(double(isx*fmant), 6, 'f', 3);
         ix0 = ix - fontMetrics.width(Label)/2;
         painter->setPen(labelPen);
         painter->drawText(QPoint(ix0, iy0), Label);

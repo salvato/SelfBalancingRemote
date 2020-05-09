@@ -8,6 +8,7 @@
 
 QT_FORWARD_DECLARE_CLASS(GLWidget)
 QT_FORWARD_DECLARE_CLASS(QPushButton)
+QT_FORWARD_DECLARE_CLASS(QLineEdit)
 QT_FORWARD_DECLARE_CLASS(Plot2D)
 
 class MainWidget : public QWidget
@@ -31,6 +32,9 @@ protected:
     void closeEvent(QCloseEvent *event);
     void keyPressEvent(QKeyEvent *event);
     void initLayout();
+    void createButtons();
+    void createPlot();
+    void executeCommand(QString command);
 
 
 private:
@@ -51,6 +55,10 @@ private:
     QPushButton* buttonShowPidOutput;
     QPushButton* buttonStartStop;
     QPushButton* buttonHide3D;
+    QPushButton* buttonConnect;
+
+    QLineEdit*   editHostName;
+
 
     float q0, q1, q2, q3;
 
