@@ -23,6 +23,7 @@ MainWidget::MainWidget(QWidget *parent)
     , pPlotVal(nullptr)
     , bRunInProgress(false)
     , bShowPidInProgress(false)
+    , bMoveInProgress(false)
 {
     initLayout();
 
@@ -51,14 +52,14 @@ MainWidget::closeEvent(QCloseEvent *event) {
 void
 MainWidget::keyPressEvent(QKeyEvent *e) {
   if(e->key() == Qt::Key_Escape)
-    close();
+    return;
   else
     QWidget::keyPressEvent(e);
 }
 
 
 void
-MainWidget::createButtons() {
+MainWidget::createUi() {
     buttonStartStop       = new QPushButton("Start",     this);
     buttonAccCalibration  = new QPushButton("Acc. Cal.", this);
     buttonGyroCalibration = new QPushButton("Gyro Cal.", this);
@@ -66,13 +67,15 @@ MainWidget::createButtons() {
     buttonShowPidOutput   = new QPushButton("Show PID",  this);
     buttonHide3D          = new QPushButton("Hide3D",    this);
     buttonConnect         = new QPushButton("Connect",   this);
+    buttonMove            = new QPushButton("Move",      this);
 
-    buttonStartStop->setEnabled(false);
-    buttonHide3D->setEnabled(false);
-    buttonAccCalibration->setEnabled(false);
-    buttonGyroCalibration->setEnabled(false);
-    buttonMagCalibration->setEnabled(false);
-    buttonShowPidOutput->setEnabled(false);
+    buttonStartStop->setDisabled(true);
+    buttonHide3D->setDisabled(true);
+    buttonAccCalibration->setDisabled(true);
+    buttonGyroCalibration->setDisabled(true);
+    buttonMagCalibration->setDisabled(true);
+    buttonShowPidOutput->setDisabled(true);
+    buttonMove->setDisabled(true);
 
     connect(buttonStartStop, SIGNAL(clicked()),
             this, SLOT(onStartStopPushed()));
@@ -88,6 +91,15 @@ MainWidget::createButtons() {
             this, SLOT(onHide3DPushed()));
     connect(buttonConnect, SIGNAL(clicked()),
             this, SLOT(onConnectToClient()));
+    connect(buttonMove, SIGNAL(clicked()),
+            this, SLOT(onStartMovePushed()));
+
+    editHostName = new QLineEdit("raspberrypi.local", this);
+    editMoveSpeed = new QLineEdit("0.0", this);
+    editMoveSpeed->setDisabled(true);
+
+    pGLWidget = new GLWidget(this);
+    createPlot();
 }
 
 
@@ -113,12 +125,11 @@ MainWidget::createPlot() {
 
 void
 MainWidget::initLayout() {
-    createButtons();
-    editHostName = new QLineEdit("raspberrypi.local", this);
-    pGLWidget = new GLWidget(this);
-    createPlot();
+    createUi();
+
     firstButtonRow = new QHBoxLayout;
     secondButtonRow = new QHBoxLayout;
+    thirdButtonRow = new QHBoxLayout;
 
     firstButtonRow->addWidget(buttonStartStop);
     firstButtonRow->addWidget(buttonHide3D);
@@ -130,6 +141,9 @@ MainWidget::initLayout() {
     secondButtonRow->addWidget(editHostName);
     secondButtonRow->addWidget(buttonConnect);
 
+    thirdButtonRow->addWidget(editMoveSpeed);
+    thirdButtonRow->addWidget(buttonMove);
+
     QHBoxLayout *firstRow = new QHBoxLayout;
     firstRow->addWidget(pGLWidget);
     firstRow->addWidget(pPlotVal);
@@ -138,6 +152,8 @@ MainWidget::initLayout() {
     mainLayout->addLayout(firstRow);
     mainLayout->addLayout(firstButtonRow);
     mainLayout->addLayout(secondButtonRow);
+    mainLayout->addLayout(thirdButtonRow);
+
     setLayout(mainLayout);
 }
 
@@ -145,8 +161,8 @@ MainWidget::initLayout() {
 void
 MainWidget::onConnectToClient() {
     if(buttonConnect->text() == tr("Connect")) {
-        buttonConnect->setEnabled(false);
-        editHostName->setEnabled(false);
+        buttonConnect->setDisabled(true);
+        editHostName->setDisabled(true);
         QHostInfo::lookupHost(editHostName->text(), this, SLOT(handleLookup(QHostInfo)));
     } else {//pButtonConnect->text() == tr("Disconnect")
         tcpClient.close();
@@ -262,10 +278,10 @@ MainWidget::onStartStopPushed() {
             tcpClient.write(message);
             bRunInProgress = false;
             buttonStartStop->setText("Start");
-            buttonAccCalibration->setEnabled(false);
-            buttonGyroCalibration->setEnabled(false);
-            buttonMagCalibration->setEnabled(false);
-            buttonShowPidOutput->setEnabled(false);
+            buttonAccCalibration->setDisabled(true);
+            buttonGyroCalibration->setDisabled(true);
+            buttonMagCalibration->setDisabled(true);
+            buttonShowPidOutput->setDisabled(true);
         }
     }
     else {
@@ -303,7 +319,7 @@ MainWidget::onShowPidOutput() {
             message.clear();
             message.append("P#"); // Show PID
             tcpClient.write(message);
-            bShowPidInProgress = false;
+            bShowPidInProgress = true;
 
             buttonShowPidOutput->setText("Hide Pid Out");
             buttonAccCalibration->setDisabled(true);
@@ -315,6 +331,37 @@ MainWidget::onShowPidOutput() {
             pPlotVal->SetShowDataSet(3, false);
             pPlotVal->SetShowDataSet(4, true);
             pPlotVal->SetShowDataSet(5, true);
+        }
+    }
+}
+
+
+void
+MainWidget::onStartMovePushed() {
+    if(bMoveInProgress) {
+        if(tcpClient.isOpen()) {
+            message.clear();
+            message.append("H#"); // Halt Move !
+            tcpClient.write(message);
+            bMoveInProgress = false;
+            buttonMove->setText("Move");
+            buttonAccCalibration->setEnabled(true);
+            buttonGyroCalibration->setEnabled(true);
+            buttonMagCalibration->setEnabled(true);
+            buttonShowPidOutput->setEnabled(true);
+        }
+    }
+    else {
+        if(tcpClient.isOpen()) {
+            message.clear();
+            message.append("M#"); // Start Moving
+            tcpClient.write(message);
+            bMoveInProgress = true;
+            buttonMove->setText("Halt");
+            buttonAccCalibration->setDisabled(true);
+            buttonGyroCalibration->setDisabled(true);
+            buttonMagCalibration->setDisabled(true);
+            buttonShowPidOutput->setDisabled(true);
         }
     }
 }

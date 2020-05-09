@@ -30,12 +30,13 @@ public slots:
     void onNewDataAvailable();
     void onStartStopPushed();
     void onShowPidOutput();
+    void onStartMovePushed();
 
 protected:
     void closeEvent(QCloseEvent *event);
     void keyPressEvent(QKeyEvent *event);
     void initLayout();
-    void createButtons();
+    void createUi();
     void createPlot();
     void executeCommand(QString command);
 
@@ -53,6 +54,7 @@ private:
 
     QHBoxLayout* firstButtonRow;
     QHBoxLayout* secondButtonRow;
+    QHBoxLayout* thirdButtonRow;
 
     QPushButton* buttonAccCalibration;
     QPushButton* buttonGyroCalibration;
@@ -60,12 +62,16 @@ private:
     QPushButton* buttonShowPidOutput;
     QPushButton* buttonStartStop;
     QPushButton* buttonHide3D;
+
     QPushButton* buttonConnect;
+    QPushButton* buttonMove;
 
     QLineEdit*   editHostName;
+    QLineEdit*   editMoveSpeed;
 
     bool bRunInProgress;
     bool bShowPidInProgress;
+    bool bMoveInProgress;
 
     float q0, q1, q2, q3;
 
