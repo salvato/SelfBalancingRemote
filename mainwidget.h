@@ -10,6 +10,7 @@ QT_FORWARD_DECLARE_CLASS(GLWidget)
 QT_FORWARD_DECLARE_CLASS(QPushButton)
 QT_FORWARD_DECLARE_CLASS(QHBoxLayout)
 QT_FORWARD_DECLARE_CLASS(QLineEdit)
+QT_FORWARD_DECLARE_CLASS(QLabel)
 QT_FORWARD_DECLARE_CLASS(Plot2D)
 
 class MainWidget : public QWidget
@@ -31,6 +32,7 @@ public slots:
     void onStartStopPushed();
     void onShowPidOutput();
     void onStartMovePushed();
+    void onSetPID();
 
 protected:
     void closeEvent(QCloseEvent *event);
@@ -64,10 +66,20 @@ private:
     QPushButton* buttonHide3D;
 
     QPushButton* buttonConnect;
-    QPushButton* buttonMove;
-
+    QLabel*      labelHost;
     QLineEdit*   editHostName;
+
+    QPushButton* buttonMove;
+    QLabel*      labelSpeed;
     QLineEdit*   editMoveSpeed;
+
+    QPushButton* buttonSetPid;
+    QLabel* labelKp;
+    QLineEdit* editKp;
+    QLabel* labelKi;
+    QLineEdit* editKi;
+    QLabel* labelKd;
+    QLineEdit* editKd;
 
     bool bRunInProgress;
     bool bShowPidInProgress;

@@ -6,6 +6,7 @@
 #include <QThread>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QLabel>
 #include <QSettings>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -68,6 +69,7 @@ MainWidget::createUi() {
     buttonHide3D          = new QPushButton("Hide3D",    this);
     buttonConnect         = new QPushButton("Connect",   this);
     buttonMove            = new QPushButton("Move",      this);
+    buttonSetPid          = new QPushButton("Set PID",   this);
 
     buttonStartStop->setDisabled(true);
     buttonHide3D->setDisabled(true);
@@ -76,6 +78,28 @@ MainWidget::createUi() {
     buttonMagCalibration->setDisabled(true);
     buttonShowPidOutput->setDisabled(true);
     buttonMove->setDisabled(true);
+    buttonSetPid->setDisabled(true);
+
+    labelHost = new QLabel("Hostname", this);
+    editHostName = new QLineEdit("raspberrypi.local", this);
+
+    labelSpeed = new QLabel("Speed", this);
+    editMoveSpeed = new QLineEdit("0.0", this);
+    editMoveSpeed->setDisabled(true);
+
+    labelKp = new QLabel("Kp", this);
+    labelKi = new QLabel("Ki", this);
+    labelKd = new QLabel("Kd", this);
+    editKp = new QLineEdit("1.0", this);
+    editKi = new QLineEdit("0.0", this);
+    editKd = new QLineEdit("0.0", this);
+
+    editKp->setDisabled(true);
+    editKi->setDisabled(true);
+    editKd->setDisabled(true);
+
+    pGLWidget = new GLWidget(this);
+    createPlot();
 
     connect(buttonStartStop, SIGNAL(clicked()),
             this, SLOT(onStartStopPushed()));
@@ -93,13 +117,8 @@ MainWidget::createUi() {
             this, SLOT(onConnectToClient()));
     connect(buttonMove, SIGNAL(clicked()),
             this, SLOT(onStartMovePushed()));
-
-    editHostName = new QLineEdit("raspberrypi.local", this);
-    editMoveSpeed = new QLineEdit("0.0", this);
-    editMoveSpeed->setDisabled(true);
-
-    pGLWidget = new GLWidget(this);
-    createPlot();
+    connect(buttonSetPid, SIGNAL(clicked()),
+            this, SLOT(onSetPID()));
 }
 
 
@@ -138,11 +157,21 @@ MainWidget::initLayout() {
     firstButtonRow->addWidget(buttonMagCalibration);
     firstButtonRow->addWidget(buttonShowPidOutput);
 
+    secondButtonRow->addWidget(labelHost);
     secondButtonRow->addWidget(editHostName);
     secondButtonRow->addWidget(buttonConnect);
 
+    thirdButtonRow->addWidget(labelSpeed);
     thirdButtonRow->addWidget(editMoveSpeed);
     thirdButtonRow->addWidget(buttonMove);
+
+    thirdButtonRow->addWidget(labelKp);
+    thirdButtonRow->addWidget(editKp);
+    thirdButtonRow->addWidget(labelKi);
+    thirdButtonRow->addWidget(editKi);
+    thirdButtonRow->addWidget(labelKd);
+    thirdButtonRow->addWidget(editKd);
+    thirdButtonRow->addWidget(buttonSetPid);
 
     QHBoxLayout *firstRow = new QHBoxLayout;
     firstRow->addWidget(pGLWidget);
@@ -213,6 +242,11 @@ MainWidget::onServerConnected() {
     buttonGyroCalibration->setEnabled(true);
     buttonMagCalibration->setEnabled(true);
     buttonShowPidOutput->setEnabled(true);
+    buttonSetPid->setEnabled(true);
+
+    editKp->setEnabled(true);
+    editKi->setEnabled(true);
+    editKd->setEnabled(true);
 }
 
 
@@ -263,8 +297,6 @@ MainWidget::executeCommand(QString command) {
             pPlotVal->NewPoint(5, x, double(output));
             pPlotVal->UpdatePlot();
         }
-//    } else if(command.contains(QString("alive"))) {
-//        watchDogTimer.start(watchDogTime);
     }
 }
 
@@ -363,5 +395,17 @@ MainWidget::onStartMovePushed() {
             buttonMagCalibration->setDisabled(true);
             buttonShowPidOutput->setDisabled(true);
         }
+    }
+}
+
+
+void
+MainWidget::onSetPID() {
+    if(tcpClient.isOpen()) {
+        QString sMessage = QString("C %1 %2 %3#")
+                .arg(editKp->text())
+                .arg(editKi->text())
+                .arg(editKd->text());
+        tcpClient.write(sMessage.toLatin1());
     }
 }
