@@ -21,8 +21,20 @@ MainWidget::MainWidget(QWidget *parent)
     // Widgets
     , pGLWidget(nullptr)
     , pPlotVal(nullptr)
+    , bRunInProgress(false)
+    , bShowPidInProgress(false)
 {
     initLayout();
+
+    // Network events
+    connect(&tcpClient, SIGNAL(connected()),
+            this, SLOT(onServerConnected()));
+    connect(&tcpClient, SIGNAL(disconnected()),
+            this, SLOT(onServerDisconnected()));
+    connect(&tcpClient, SIGNAL(readyRead()),
+            this, SLOT(onNewDataAvailable()));
+    connect(&tcpClient, SIGNAL(error(QAbstractSocket::SocketError)),
+            this, SLOT(displayError(QAbstractSocket::SocketError)));
 }
 
 
@@ -55,8 +67,8 @@ MainWidget::createButtons() {
     buttonHide3D          = new QPushButton("Hide3D",    this);
     buttonConnect         = new QPushButton("Connect",   this);
 
-    buttonStartStop->setEnabled(true);
-    buttonHide3D->setEnabled(true);
+    buttonStartStop->setEnabled(false);
+    buttonHide3D->setEnabled(false);
     buttonAccCalibration->setEnabled(false);
     buttonGyroCalibration->setEnabled(false);
     buttonMagCalibration->setEnabled(false);
@@ -74,6 +86,8 @@ MainWidget::createButtons() {
             this, SLOT(onShowPidOutput()));
     connect(buttonHide3D, SIGNAL(clicked()),
             this, SLOT(onHide3DPushed()));
+    connect(buttonConnect, SIGNAL(clicked()),
+            this, SLOT(onConnectToClient()));
 }
 
 
@@ -100,16 +114,21 @@ MainWidget::createPlot() {
 void
 MainWidget::initLayout() {
     createButtons();
-    editHostName         = new QLineEdit("192.168.1.123", this);
+    editHostName = new QLineEdit("raspberrypi.local", this);
     pGLWidget = new GLWidget(this);
     createPlot();
-    QHBoxLayout *firstButtonRow = new QHBoxLayout;
+    firstButtonRow = new QHBoxLayout;
+    secondButtonRow = new QHBoxLayout;
+
     firstButtonRow->addWidget(buttonStartStop);
     firstButtonRow->addWidget(buttonHide3D);
     firstButtonRow->addWidget(buttonAccCalibration);
     firstButtonRow->addWidget(buttonGyroCalibration);
     firstButtonRow->addWidget(buttonMagCalibration);
     firstButtonRow->addWidget(buttonShowPidOutput);
+
+    secondButtonRow->addWidget(editHostName);
+    secondButtonRow->addWidget(buttonConnect);
 
     QHBoxLayout *firstRow = new QHBoxLayout;
     firstRow->addWidget(pGLWidget);
@@ -118,6 +137,7 @@ MainWidget::initLayout() {
     QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->addLayout(firstRow);
     mainLayout->addLayout(firstButtonRow);
+    mainLayout->addLayout(secondButtonRow);
     setLayout(mainLayout);
 }
 
@@ -170,6 +190,13 @@ MainWidget::onServerConnected() {
     qDebug() << QString("Connected");
     buttonConnect->setText("Disconnect");
     buttonConnect->setEnabled(true);
+
+    buttonStartStop->setEnabled(true);
+    buttonHide3D->setEnabled(true);
+    buttonAccCalibration->setEnabled(true);
+    buttonGyroCalibration->setEnabled(true);
+    buttonMagCalibration->setEnabled(true);
+    buttonShowPidOutput->setEnabled(true);
 }
 
 
@@ -199,41 +226,95 @@ MainWidget::onNewDataAvailable() {
 
 void
 MainWidget::executeCommand(QString command) {
-    if(command.at(0) == 'q') {
-        //        QStringList tokens = command.split(' ');
-        //        tokens.removeFirst();
-        //        if(tokens.count() == 8) {
-        //            int iSensorNumber = tokens.at(0).toInt();
-        //            if(iSensorNumber >= boxes.count()) {
-        //                for(int i=boxes.count(); i<=iSensorNumber; i++) {
-        //                    boxes.append(new Shimmer3Box());
-        //                }
-        //            }
-        //            if(iSensorNumber < boxes.count()) {
-        //                Shimmer3Box* pBox = boxes[iSensorNumber];
-        //                pBox->x      = tokens.at(1).toDouble();
-        //                pBox->y      = tokens.at(2).toDouble();
-        //                pBox->z      = tokens.at(3).toDouble();
-        //                pBox->pos[0] = tokens.at(4).toDouble();
-        //                pBox->pos[1] = tokens.at(5).toDouble();
-        //                pBox->pos[2] = tokens.at(6).toDouble();
-        //                pBox->angle  = tokens.at(7).toDouble();
-        //                updateWidgets();
-        //            }
-        //        }
-
-        //    } else if(command.contains(QString("depth"))) {
-        //        QStringList tokens = command.split(' ');
-        //        tokens.removeFirst();
-        //        double depth = tokens.at(0).toInt()/100.0;// Now in meters
-        //        //      qDebug() << "Depth= " << depth;
-        //        pDepth->setValue(tokens.at(0).toInt());
-        //        QString sDepth;
-        //        sDepth.sprintf("%.2f", depth);
-        //        pDepthEdit->setText(sDepth);
-
-        //    } else if(command.contains(QString("alive"))) {
-        //        watchDogTimer.start(watchDogTime);
+    QStringList tokens = command.split(' ');
+    tokens.removeFirst();
+    char cmd = command.at(0).toLatin1();
+    if(cmd == 'q') { // It is a Quaternion !
+        if(tokens.count() == 4) {
+            q0 = tokens.at(0).toDouble();
+            q1 = tokens.at(1).toDouble();
+            q2 = tokens.at(2).toDouble();
+            q3 = tokens.at(3).toDouble();
+            pGLWidget->setRotation(q0, q1, q2, q3);
+            pGLWidget->update();
+        }
+    } else if(cmd == 'p') { // PID Input & Output values
+        if(tokens.count() == 3) {
+            double x = tokens.at(0).toDouble();
+            double input = tokens.at(1).toDouble();
+            double output = tokens.at(2).toDouble();
+            pPlotVal->NewPoint(4, x, double(input));
+            pPlotVal->NewPoint(5, x, double(output));
+            pPlotVal->UpdatePlot();
+        }
+//    } else if(command.contains(QString("alive"))) {
+//        watchDogTimer.start(watchDogTime);
     }
 }
 
+
+void
+MainWidget::onStartStopPushed() {
+    if(bRunInProgress) {
+        if(tcpClient.isOpen()) {
+            message.clear();
+            message.append("S#"); // Stop !
+            tcpClient.write(message);
+            bRunInProgress = false;
+            buttonStartStop->setText("Start");
+            buttonAccCalibration->setEnabled(false);
+            buttonGyroCalibration->setEnabled(false);
+            buttonMagCalibration->setEnabled(false);
+            buttonShowPidOutput->setEnabled(false);
+        }
+    }
+    else {
+        if(tcpClient.isOpen()) {
+            message.clear();
+            message.append("G#"); // Go !
+            tcpClient.write(message);
+            bRunInProgress = true;
+            buttonStartStop->setText("Stop");
+            buttonAccCalibration->setEnabled(true);
+            buttonGyroCalibration->setEnabled(true);
+            buttonMagCalibration->setEnabled(true);
+            buttonShowPidOutput->setEnabled(true);
+        }
+    }
+}
+
+
+void
+MainWidget::onShowPidOutput() {
+    if(bShowPidInProgress) {
+        if(tcpClient.isOpen()) {
+            message.clear();
+            message.append("N#"); // Stop PID!
+            tcpClient.write(message);
+            bShowPidInProgress = false;
+            buttonShowPidOutput->setText("Show PID");
+            buttonAccCalibration->setEnabled(true);
+            buttonGyroCalibration->setEnabled(true);
+            buttonMagCalibration->setEnabled(true);
+        }
+    }
+    else {
+        if(tcpClient.isOpen()) {
+            message.clear();
+            message.append("P#"); // Show PID
+            tcpClient.write(message);
+            bShowPidInProgress = false;
+
+            buttonShowPidOutput->setText("Hide Pid Out");
+            buttonAccCalibration->setDisabled(true);
+            buttonGyroCalibration->setDisabled(true);
+            buttonMagCalibration->setDisabled(true);
+
+            pPlotVal->SetShowDataSet(1, false);
+            pPlotVal->SetShowDataSet(2, false);
+            pPlotVal->SetShowDataSet(3, false);
+            pPlotVal->SetShowDataSet(4, true);
+            pPlotVal->SetShowDataSet(5, true);
+        }
+    }
+}

@@ -8,6 +8,7 @@
 
 QT_FORWARD_DECLARE_CLASS(GLWidget)
 QT_FORWARD_DECLARE_CLASS(QPushButton)
+QT_FORWARD_DECLARE_CLASS(QHBoxLayout)
 QT_FORWARD_DECLARE_CLASS(QLineEdit)
 QT_FORWARD_DECLARE_CLASS(Plot2D)
 
@@ -27,6 +28,8 @@ public slots:
     void onServerConnected();
     void onServerDisconnected();
     void onNewDataAvailable();
+    void onStartStopPushed();
+    void onShowPidOutput();
 
 protected:
     void closeEvent(QCloseEvent *event);
@@ -45,9 +48,11 @@ private:
     int bytesWritten;
     int bytesReceived;
 
-
     GLWidget* pGLWidget;
     Plot2D*   pPlotVal;
+
+    QHBoxLayout* firstButtonRow;
+    QHBoxLayout* secondButtonRow;
 
     QPushButton* buttonAccCalibration;
     QPushButton* buttonGyroCalibration;
@@ -59,6 +64,8 @@ private:
 
     QLineEdit*   editHostName;
 
+    bool bRunInProgress;
+    bool bShowPidInProgress;
 
     float q0, q1, q2, q3;
 
