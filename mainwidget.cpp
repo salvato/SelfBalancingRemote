@@ -34,6 +34,7 @@
 //--------------------------------------------------------------
 //      q               Quaternion Value
 //      p               PID Values (time, input & output)
+//      c               Robot Configuration Values
 //==============================================================
 
 
@@ -104,9 +105,12 @@ MainWidget::createUi() {
     labelHost = new QLabel("Hostname", this);
     editHostName = new QLineEdit("raspberrypi.local", this);
 
-    labelSpeed = new QLabel("Speed", this);
-    editMoveSpeed = new QLineEdit("0.0", this);
-    editMoveSpeed->setDisabled(true);
+    labelSpeedL = new QLabel("L Speed", this);
+    labelSpeedR = new QLabel("R Speed", this);
+    editMoveSpeedL = new QLineEdit("0.0", this);
+    editMoveSpeedR = new QLineEdit("0.0", this);
+    editMoveSpeedL->setDisabled(true);
+    editMoveSpeedR->setDisabled(true);
 
     labelKp = new QLabel("Kp", this);
     labelKi = new QLabel("Ki", this);
@@ -182,8 +186,10 @@ MainWidget::initLayout() {
     secondButtonRow->addWidget(editHostName);
     secondButtonRow->addWidget(buttonConnect);
 
-    thirdButtonRow->addWidget(labelSpeed);
-    thirdButtonRow->addWidget(editMoveSpeed);
+    thirdButtonRow->addWidget(labelSpeedL);
+    thirdButtonRow->addWidget(editMoveSpeedL);
+    thirdButtonRow->addWidget(labelSpeedR);
+    thirdButtonRow->addWidget(editMoveSpeedR);
     thirdButtonRow->addWidget(buttonMove);
 
     thirdButtonRow->addWidget(labelKp);
@@ -309,7 +315,8 @@ MainWidget::executeCommand(QString command) {
             pGLWidget->setRotation(q0, q1, q2, q3);
             pGLWidget->update();
         }
-    } else if(cmd == 'p') { // PID Input & Output values
+    }
+    else if(cmd == 'p') { // PID Input & Output values
         if(tokens.count() == 3) {
             double x = tokens.at(0).toDouble();
             double input = tokens.at(1).toDouble();
@@ -319,6 +326,10 @@ MainWidget::executeCommand(QString command) {
             pPlotVal->UpdatePlot();
         }
     }
+//    else if(cmd == 'c') { // Robot Configuration Values
+//        if(tokens.count() == 3) {
+//        }
+//    }
 }
 
 
@@ -406,9 +417,10 @@ MainWidget::onStartMovePushed() {
     }
     else {
         if(tcpClient.isOpen()) {
-            message.clear();
-            message.append("M#"); // Start Moving
-            tcpClient.write(message);
+            QString sMessage = QString("M %1 %2#")
+                    .arg(editMoveSpeedL->text())
+                    .arg(editMoveSpeedR->text()); // Start Moving
+            tcpClient.write(sMessage.toLatin1());
             bMoveInProgress = true;
             buttonMove->setText("Halt");
             buttonAccCalibration->setDisabled(true);

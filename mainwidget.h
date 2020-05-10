@@ -42,7 +42,6 @@ protected:
     void createPlot();
     void executeCommand(QString command);
 
-
 private:
     QTcpSocket tcpClient;
     QHostAddress serverAddress;
@@ -70,8 +69,10 @@ private:
     QLineEdit*   editHostName;
 
     QPushButton* buttonMove;
-    QLabel*      labelSpeed;
-    QLineEdit*   editMoveSpeed;
+    QLabel*      labelSpeedL;
+    QLineEdit*   editMoveSpeedL;
+    QLabel*      labelSpeedR;
+    QLineEdit*   editMoveSpeedR;
 
     QPushButton* buttonSetPid;
     QLabel* labelKp;
