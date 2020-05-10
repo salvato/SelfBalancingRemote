@@ -25,7 +25,7 @@
 //      P           Send PID Values
 //      N           Stop Sending PID Values
 //      H           Halt Move
-//      M           Start Moving (at a given speed
+//      M           Start Moving (at a given speed Left & Rigth)
 //==============================================================
 
 
@@ -293,7 +293,7 @@ MainWidget::onNewDataAvailable() {
     iPos = receivedCommand.indexOf("#");
     while(iPos != -1) {
         sNewCommand = receivedCommand.left(iPos);
-        //qDebug() << QString(sNewCommand + " Received");
+        qDebug() << QString(sNewCommand + " Received");
         executeCommand(sNewCommand);
         receivedCommand = receivedCommand.mid(iPos+1);
         iPos = receivedCommand.indexOf("#");
@@ -361,6 +361,26 @@ MainWidget::onStartStopPushed() {
             buttonShowPidOutput->setEnabled(true);
         }
     }
+}
+
+
+void
+MainWidget::onStartAccCalibration() {
+}
+
+
+void
+MainWidget::onStartGyroCalibration() {
+}
+
+
+void
+MainWidget::onStartMagCalibration() {
+}
+
+
+void
+MainWidget::onHide3DPushed() {
 }
 
 

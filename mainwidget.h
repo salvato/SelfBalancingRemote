@@ -21,7 +21,6 @@ public:
     MainWidget(QWidget *parent = nullptr);
     ~MainWidget();
 
-
 public slots:
     void onConnectToClient();
     void handleLookup(QHostInfo hostInfo);
@@ -30,6 +29,10 @@ public slots:
     void onServerDisconnected();
     void onNewDataAvailable();
     void onStartStopPushed();
+    void onStartAccCalibration();
+    void onStartGyroCalibration();
+    void onStartMagCalibration();
+    void onHide3DPushed();
     void onShowPidOutput();
     void onStartMovePushed();
     void onSetPID();
@@ -87,5 +90,4 @@ private:
     bool bMoveInProgress;
 
     float q0, q1, q2, q3;
-
 };
