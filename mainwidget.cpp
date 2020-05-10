@@ -17,11 +17,32 @@
 #include <QKeyEvent>
 
 
+//==============================================================
+// Orders (Sent)            Meaning
+//--------------------------------------------------------------
+//      G           Go (Control Robot and Send Back Quaternion)
+//      S           Stop (Stop Controlling the Robot and Halt)
+//      P           Send PID Values
+//      N           Stop Sending PID Values
+//      H           Halt Move
+//      M           Start Moving (at a given speed
+//==============================================================
+
+
+//==============================================================
+// Commands (Received)          Meaning
+//--------------------------------------------------------------
+//      q               Quaternion Value
+//      p               PID Values (time, input & output)
+//==============================================================
+
+
 MainWidget::MainWidget(QWidget *parent)
     : QWidget(parent)
     // Widgets
     , pGLWidget(nullptr)
     , pPlotVal(nullptr)
+    // Status
     , bRunInProgress(false)
     , bShowPidInProgress(false)
     , bMoveInProgress(false)
@@ -337,7 +358,7 @@ MainWidget::onShowPidOutput() {
     if(bShowPidInProgress) {
         if(tcpClient.isOpen()) {
             message.clear();
-            message.append("N#"); // Stop PID!
+            message.append("N#"); // Stop Sending PID Values
             tcpClient.write(message);
             bShowPidInProgress = false;
             buttonShowPidOutput->setText("Show PID");
@@ -349,7 +370,7 @@ MainWidget::onShowPidOutput() {
     else {
         if(tcpClient.isOpen()) {
             message.clear();
-            message.append("P#"); // Show PID
+            message.append("P#"); // Send PID Values
             tcpClient.write(message);
             bShowPidInProgress = true;
 
