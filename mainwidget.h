@@ -12,6 +12,7 @@ QT_FORWARD_DECLARE_CLASS(QHBoxLayout)
 QT_FORWARD_DECLARE_CLASS(QLineEdit)
 QT_FORWARD_DECLARE_CLASS(QLabel)
 QT_FORWARD_DECLARE_CLASS(Plot2D)
+QT_FORWARD_DECLARE_CLASS(QUdpSocket)
 
 class MainWidget : public QWidget
 {
@@ -28,6 +29,7 @@ public slots:
     void onServerConnected();
     void onServerDisconnected();
     void onNewDataAvailable();
+    void readPendingDatagrams();
     void onStartStopPushed();
     void onStartAccCalibration();
     void onStartGyroCalibration();
@@ -52,6 +54,8 @@ private:
     QString receivedCommand;
     int bytesWritten;
     int bytesReceived;
+    QUdpSocket*   pUdpSocket;
+    int           udpPort;
 
     GLWidget* pGLWidget;
     Plot2D*   pPlotVal;

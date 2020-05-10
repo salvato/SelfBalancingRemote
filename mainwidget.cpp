@@ -12,6 +12,8 @@
 #include <QTcpSocket>
 #include <QHostAddress>
 #include <QNetworkInterface>
+#include <QUdpSocket>
+#include <QNetworkDatagram>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QKeyEvent>
@@ -40,6 +42,8 @@
 
 MainWidget::MainWidget(QWidget *parent)
     : QWidget(parent)
+    , pUdpSocket(nullptr)
+    , udpPort(37755)
     // Widgets
     , pGLWidget(nullptr)
     , pPlotVal(nullptr)
@@ -50,7 +54,15 @@ MainWidget::MainWidget(QWidget *parent)
 {
     initLayout();
 
+    pUdpSocket = new QUdpSocket(this);
+    if(!pUdpSocket->bind(QHostAddress::Any, udpPort)) {
+        qDebug() << "Unable to bind";
+        exit(EXIT_FAILURE);
+    }
+
     // Network events
+    connect(pUdpSocket, SIGNAL(readyRead()),
+            this, SLOT(readPendingDatagrams()));
     connect(&tcpClient, SIGNAL(connected()),
             this, SLOT(onServerConnected()));
     connect(&tcpClient, SIGNAL(disconnected()),
@@ -69,6 +81,8 @@ MainWidget::~MainWidget() {
 void
 MainWidget::closeEvent(QCloseEvent *event) {
     Q_UNUSED(event)
+    if(pUdpSocket)
+        delete pUdpSocket;
 }
 
 
@@ -164,6 +178,9 @@ MainWidget::createPlot() {
     pPlotVal->SetShowTitle(5, true);
 
     pPlotVal->SetLimits(-1.0, 1.0, -1.0, 1.0, true, true, false, false);
+
+    pPlotVal->SetShowDataSet(4, true);
+    pPlotVal->SetShowDataSet(5, true);
 }
 
 
@@ -260,6 +277,7 @@ MainWidget::displayError(QAbstractSocket::SocketError socketError) {
 void
 MainWidget::onServerConnected() {
     qDebug() << QString("Connected");
+
     buttonConnect->setText("Disconnect");
     buttonConnect->setEnabled(true);
 
@@ -293,10 +311,27 @@ MainWidget::onNewDataAvailable() {
     iPos = receivedCommand.indexOf("#");
     while(iPos != -1) {
         sNewCommand = receivedCommand.left(iPos);
-        qDebug() << QString(sNewCommand + " Received");
         executeCommand(sNewCommand);
         receivedCommand = receivedCommand.mid(iPos+1);
         iPos = receivedCommand.indexOf("#");
+    }
+}
+
+
+void
+MainWidget::readPendingDatagrams() {
+    while(pUdpSocket->hasPendingDatagrams()) {
+        QNetworkDatagram datagram = pUdpSocket->receiveDatagram();
+        QString sReceived = QString(datagram.data());
+        QString sNewCommand;
+        int iPos;
+        iPos = sReceived.indexOf("#");
+        while(iPos != -1) {
+            sNewCommand = sReceived.left(iPos);
+            executeCommand(sNewCommand);
+            sReceived = sReceived.mid(iPos+1);
+            iPos = sReceived.indexOf("#");
+        }
     }
 }
 
