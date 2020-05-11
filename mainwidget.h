@@ -15,6 +15,8 @@ QT_FORWARD_DECLARE_CLASS(QLineEdit)
 QT_FORWARD_DECLARE_CLASS(QLabel)
 QT_FORWARD_DECLARE_CLASS(Plot2D)
 QT_FORWARD_DECLARE_CLASS(QUdpSocket)
+QT_FORWARD_DECLARE_CLASS(QStatusBar)
+
 
 class MainWidget : public QWidget
 {
@@ -32,14 +34,9 @@ public slots:
     void onServerDisconnected();
     void onNewDataAvailable();
     void readPendingDatagrams();
-    void onStartStopPushed();
-    void onStartAccCalibration();
-    void onStartGyroCalibration();
-    void onStartMagCalibration();
-    void onAskConfPushed();
-    void onShowPidOutput();
+    void onButtonManualPushed();
     void onStartMovePushed();
-    void onSetPID();
+    void onSetPIDPushed();
     void onTimeToUpdateWidgets();
 
 protected:
@@ -50,6 +47,7 @@ protected:
     void createPlot();
     void executeCommand(QString command);
     void setDisableUI(bool bDisable);
+    void askConfiguration();
 
 private:
     QTcpSocket   tcpClient;
@@ -67,12 +65,7 @@ private:
     QHBoxLayout* secondButtonRow;
     QHBoxLayout* thirdButtonRow;
 
-    QPushButton* buttonAccCalibration;
-    QPushButton* buttonGyroCalibration;
-    QPushButton* buttonMagCalibration;
-    QPushButton* buttonShowPidOutput;
-    QPushButton* buttonStartStop;
-    QPushButton* buttonAskConf;
+    QPushButton* buttonManual;
 
     QPushButton* buttonConnect;
     QLabel*      labelHost;
@@ -92,8 +85,9 @@ private:
     QLabel*      labelKd;
     QLineEdit*   editKd;
 
-    bool bRunInProgress;
-    bool bShowPidInProgress;
+    QStatusBar*  statusBar;
+
+    bool bPIDInControl;
     bool bMoveInProgress;
 
     float q0, q1, q2, q3;

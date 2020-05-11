@@ -17,13 +17,14 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QKeyEvent>
+#include <QStatusBar>
 
 
 //==============================================================
 // Orders (Sent)            Meaning
 //--------------------------------------------------------------
-//      G           Go Controling the Robot
-//      S           Stop Controlling the Robot and Halt
+//      G           Set PID Control
+//      S           Set Manual Control
 //      P           Send PID Values (Kp, Ki, Kd)
 //      C           Ask Robot Configuration
 //      M           Start Moving (at a given speed Left & Rigth)
@@ -48,16 +49,15 @@ MainWidget::MainWidget(QWidget *parent)
     , pGLWidget(nullptr)
     , pPlotVal(nullptr)
     // Status
-    , bRunInProgress(false)
-    , bShowPidInProgress(false)
+    , bPIDInControl(false)
     , bMoveInProgress(false)
 {
     initLayout();
 
     pUdpSocket = new QUdpSocket(this);
     if(!pUdpSocket->bind(QHostAddress::Any, udpPort)) {
-        qDebug() << "Unable to bind";
-        exit(EXIT_FAILURE);
+        statusBar->showMessage("Unable to bind... EXITING");
+        setDisabled(true);
     }
 
     // Network events
@@ -101,52 +101,39 @@ MainWidget::keyPressEvent(QKeyEvent *e) {
 
 void
 MainWidget::createUi() {
-    buttonStartStop       = new QPushButton("Start",     this);
-    buttonAccCalibration  = new QPushButton("Acc. Cal.", this);
-    buttonGyroCalibration = new QPushButton("Gyro Cal.", this);
-    buttonMagCalibration  = new QPushButton("Mag. Cal.", this);
-    buttonShowPidOutput   = new QPushButton("Show PID",  this);
-    buttonAskConf         = new QPushButton("Get Conf.", this);
+    buttonManual          = new QPushButton("Start PID",     this);
     buttonConnect         = new QPushButton("Connect",   this);
     buttonMove            = new QPushButton("Move",      this);
     buttonSetPid          = new QPushButton("Set PID",   this);
 
-    labelHost = new QLabel("Hostname", this);
+    labelHost    = new QLabel("Hostname", this);
     editHostName = new QLineEdit("raspberrypi.local", this);
 
-    labelSpeedL = new QLabel("L Speed", this);
-    labelSpeedR = new QLabel("R Speed", this);
+    labelSpeedL    = new QLabel("L Speed", this);
+    labelSpeedR    = new QLabel("R Speed", this);
     editMoveSpeedL = new QLineEdit("0.0", this);
     editMoveSpeedR = new QLineEdit("0.0", this);
 
     labelKp = new QLabel("Kp", this);
     labelKi = new QLabel("Ki", this);
     labelKd = new QLabel("Kd", this);
-    editKp = new QLineEdit("1.0", this);
-    editKi = new QLineEdit("0.0", this);
-    editKd = new QLineEdit("0.0", this);
+    editKp  = new QLineEdit("1.0", this);
+    editKi  = new QLineEdit("0.0", this);
+    editKd  = new QLineEdit("0.0", this);
+
+    statusBar = new QStatusBar(this);
 
     pGLWidget = new GLWidget(this);
     createPlot();
 
-    connect(buttonStartStop, SIGNAL(clicked()),
-            this, SLOT(onStartStopPushed()));
-    connect(buttonAccCalibration, SIGNAL(clicked()),
-            this, SLOT(onStartAccCalibration()));
-    connect(buttonGyroCalibration, SIGNAL(clicked()),
-            this, SLOT(onStartGyroCalibration()));
-    connect(buttonMagCalibration, SIGNAL(clicked()),
-            this, SLOT(onStartMagCalibration()));
-    connect(buttonShowPidOutput, SIGNAL(clicked(bool)),
-            this, SLOT(onShowPidOutput()));
-    connect(buttonAskConf, SIGNAL(clicked()),
-            this, SLOT(onAskConfPushed()));
+    connect(buttonManual, SIGNAL(clicked()),
+            this, SLOT(onButtonManualPushed()));
     connect(buttonConnect, SIGNAL(clicked()),
             this, SLOT(onConnectToClient()));
     connect(buttonMove, SIGNAL(clicked()),
             this, SLOT(onStartMovePushed()));
     connect(buttonSetPid, SIGNAL(clicked()),
-            this, SLOT(onSetPID()));
+            this, SLOT(onSetPIDPushed()));
 
     setDisableUI(true);
 }
@@ -154,12 +141,7 @@ MainWidget::createUi() {
 
 void
 MainWidget::setDisableUI(bool bDisable) {
-    buttonStartStop->setDisabled(bDisable);
-    buttonAskConf->setDisabled(bDisable);
-    buttonAccCalibration->setDisabled(bDisable);
-    buttonGyroCalibration->setDisabled(bDisable);
-    buttonMagCalibration->setDisabled(bDisable);
-    buttonShowPidOutput->setDisabled(bDisable);
+    buttonManual->setDisabled(bDisable);
     buttonMove->setDisabled(bDisable);
     buttonSetPid->setDisabled(bDisable);
 
@@ -200,33 +182,29 @@ MainWidget::initLayout() {
     createUi();
 
     firstButtonRow = new QHBoxLayout;
+//
+    firstButtonRow->addWidget(labelSpeedL);
+    firstButtonRow->addWidget(editMoveSpeedL);
+    firstButtonRow->addWidget(labelSpeedR);
+    firstButtonRow->addWidget(editMoveSpeedR);
+    firstButtonRow->addWidget(buttonMove);
+//
+    firstButtonRow->addWidget(labelKp);
+    firstButtonRow->addWidget(editKp);
+    firstButtonRow->addWidget(labelKi);
+    firstButtonRow->addWidget(editKi);
+    firstButtonRow->addWidget(labelKd);
+    firstButtonRow->addWidget(editKd);
+    firstButtonRow->addWidget(buttonSetPid);
+//
+    firstButtonRow->addWidget(buttonManual);
+
     secondButtonRow = new QHBoxLayout;
-    thirdButtonRow = new QHBoxLayout;
-
-    firstButtonRow->addWidget(buttonStartStop);
-    firstButtonRow->addWidget(buttonAskConf);
-    firstButtonRow->addWidget(buttonAccCalibration);
-    firstButtonRow->addWidget(buttonGyroCalibration);
-    firstButtonRow->addWidget(buttonMagCalibration);
-    firstButtonRow->addWidget(buttonShowPidOutput);
-
     secondButtonRow->addWidget(labelHost);
     secondButtonRow->addWidget(editHostName);
     secondButtonRow->addWidget(buttonConnect);
 
-    thirdButtonRow->addWidget(labelSpeedL);
-    thirdButtonRow->addWidget(editMoveSpeedL);
-    thirdButtonRow->addWidget(labelSpeedR);
-    thirdButtonRow->addWidget(editMoveSpeedR);
-    thirdButtonRow->addWidget(buttonMove);
-
-    thirdButtonRow->addWidget(labelKp);
-    thirdButtonRow->addWidget(editKp);
-    thirdButtonRow->addWidget(labelKi);
-    thirdButtonRow->addWidget(editKi);
-    thirdButtonRow->addWidget(labelKd);
-    thirdButtonRow->addWidget(editKd);
-    thirdButtonRow->addWidget(buttonSetPid);
+//    thirdButtonRow = new QHBoxLayout;
 
     QHBoxLayout *firstRow = new QHBoxLayout;
     firstRow->addWidget(pGLWidget);
@@ -236,7 +214,8 @@ MainWidget::initLayout() {
     mainLayout->addLayout(firstRow);
     mainLayout->addLayout(firstButtonRow);
     mainLayout->addLayout(secondButtonRow);
-    mainLayout->addLayout(thirdButtonRow);
+//    mainLayout->addLayout(thirdButtonRow);
+    mainLayout->addWidget(statusBar);
 
     setLayout(mainLayout);
 }
@@ -260,16 +239,16 @@ MainWidget::handleLookup(QHostInfo hostInfo) {
     if(hostInfo.error() == QHostInfo::NoError) {
         if(!hostInfo.addresses().isEmpty()) {
             serverAddress = hostInfo.addresses().at(0);
-            qDebug() << QString("Connecting to: %1").arg(hostInfo.hostName());
+            statusBar->showMessage(QString("Connecting to: %1").arg(hostInfo.hostName()));
             tcpClient.connectToHost(serverAddress, 43210);
         }
         else {
-            qDebug() << QString(hostInfo.errorString());
+            statusBar->showMessage(QString(hostInfo.errorString()));
             buttonConnect->setEnabled(true);
             editHostName->setEnabled(true);
         }
     } else {
-        qDebug() << QString(hostInfo.errorString());
+        statusBar->showMessage(QString(hostInfo.errorString()));
         buttonConnect->setEnabled(true);
         editHostName->setEnabled(true);
     }
@@ -279,11 +258,11 @@ MainWidget::handleLookup(QHostInfo hostInfo) {
 void
 MainWidget::displayError(QAbstractSocket::SocketError socketError) {
     if(socketError == QTcpSocket::RemoteHostClosedError) {
-        qDebug() << QString("The remote host has closed the connection");
+        statusBar->showMessage(QString("The remote host has closed the connection"));
         tcpClient.close();
         return;
     }
-    qDebug() << QString(tcpClient.errorString());
+    statusBar->showMessage(QString(tcpClient.errorString()));
     tcpClient.close();
     buttonConnect->setEnabled(true);
     editHostName->setEnabled(true);
@@ -292,12 +271,13 @@ MainWidget::displayError(QAbstractSocket::SocketError socketError) {
 
 void
 MainWidget::onServerConnected() {
-    qDebug() << QString("Connected");
+    statusBar->showMessage(QString("Connected"));
+    askConfiguration(); // Get Current Robot Configuration
+
+    setDisableUI(false);
 
     buttonConnect->setText("Disconnect");
     buttonConnect->setEnabled(true);
-
-    setDisableUI(false);
 
     pPlotVal->ClearDataSet(4);
     pPlotVal->ClearDataSet(5);
@@ -377,101 +357,47 @@ MainWidget::executeCommand(QString command) {
             pPlotVal->NewPoint(5, x, double(output));
         }
     }
-//    else if(cmd == 'c') { // Robot Configuration Values
-//        if(tokens.count() == 3) {
-//        }
-//    }
+    else if(cmd == 'c') { // Robot Configuration Values
+        if(tokens.count() == 5) {
+            editKp->setText(tokens.at(0));
+            editKi->setText(tokens.at(1));
+            editKd->setText(tokens.at(2));
+//            motorSpeedFactorLeft  = tokens.at(3).toDouble();
+//            motorSpeedFactorRight = tokens.at(4).toDouble();
+        }
+    }
 }
 
 
 void
-MainWidget::onStartStopPushed() {
-    if(bRunInProgress) {
-        if(tcpClient.isOpen()) {
-            message.clear();
-            message.append("S#"); // Stop !
+MainWidget::onButtonManualPushed() {
+    if(tcpClient.isOpen()) {
+        message.clear();
+        if(bPIDInControl) {
+            message.append("S#"); // Set Manual Control
             tcpClient.write(message);
-            bRunInProgress = false;
-            buttonStartStop->setText("Start");
-            buttonAccCalibration->setDisabled(true);
-            buttonGyroCalibration->setDisabled(true);
-            buttonMagCalibration->setDisabled(true);
-            buttonShowPidOutput->setDisabled(true);
+            bPIDInControl = false;
+            buttonManual->setText("Start PID");
+            setDisableUI(false);
         }
-    }
-    else {
-        if(tcpClient.isOpen()) {
-            message.clear();
+        else {
             message.append("G#"); // Go !
             tcpClient.write(message);
-            bRunInProgress = true;
-            buttonStartStop->setText("Stop");
-            buttonAccCalibration->setEnabled(true);
-            buttonGyroCalibration->setEnabled(true);
-            buttonMagCalibration->setEnabled(true);
-            buttonShowPidOutput->setEnabled(true);
+            bPIDInControl = true;
+            buttonManual->setText("Start Manual");
+            setDisableUI(true);
+            buttonManual->setEnabled(true);
         }
     }
 }
 
 
 void
-MainWidget::onStartAccCalibration() {
-}
-
-
-void
-MainWidget::onStartGyroCalibration() {
-}
-
-
-void
-MainWidget::onStartMagCalibration() {
-}
-
-
-void
-MainWidget::onAskConfPushed() {
+MainWidget::askConfiguration() {
     if(tcpClient.isOpen()) {
         message.clear();
         message.append("C#"); // Ask Robot Configuration
         tcpClient.write(message);
-    }
-}
-
-
-void
-MainWidget::onShowPidOutput() {
-    if(bShowPidInProgress) {
-        if(tcpClient.isOpen()) {
-            message.clear();
-            message.append("N#"); // Stop Sending PID Values
-            tcpClient.write(message);
-            bShowPidInProgress = false;
-            buttonShowPidOutput->setText("Show PID");
-            buttonAccCalibration->setEnabled(true);
-            buttonGyroCalibration->setEnabled(true);
-            buttonMagCalibration->setEnabled(true);
-        }
-    }
-    else {
-        if(tcpClient.isOpen()) {
-            message.clear();
-            message.append("P#"); // Send PID Values
-            tcpClient.write(message);
-            bShowPidInProgress = true;
-
-            buttonShowPidOutput->setText("Hide Pid Out");
-            buttonAccCalibration->setDisabled(true);
-            buttonGyroCalibration->setDisabled(true);
-            buttonMagCalibration->setDisabled(true);
-
-            pPlotVal->SetShowDataSet(1, false);
-            pPlotVal->SetShowDataSet(2, false);
-            pPlotVal->SetShowDataSet(3, false);
-            pPlotVal->SetShowDataSet(4, true);
-            pPlotVal->SetShowDataSet(5, true);
-        }
     }
 }
 
@@ -485,10 +411,6 @@ MainWidget::onStartMovePushed() {
             tcpClient.write(message);
             bMoveInProgress = false;
             buttonMove->setText("Move");
-            buttonAccCalibration->setEnabled(true);
-            buttonGyroCalibration->setEnabled(true);
-            buttonMagCalibration->setEnabled(true);
-            buttonShowPidOutput->setEnabled(true);
         }
     }
     else {
@@ -498,19 +420,15 @@ MainWidget::onStartMovePushed() {
             tcpClient.write(sMessage.toLatin1());
             bMoveInProgress = true;
             buttonMove->setText("Halt");
-            buttonAccCalibration->setDisabled(true);
-            buttonGyroCalibration->setDisabled(true);
-            buttonMagCalibration->setDisabled(true);
-            buttonShowPidOutput->setDisabled(true);
         }
     }
 }
 
 
 void
-MainWidget::onSetPID() {
+MainWidget::onSetPIDPushed() {
     if(tcpClient.isOpen()) {
-        QString sMessage = QString("C %1 %2 %3#")
+        QString sMessage = QString("P %1 %2 %3#")
                 .arg(editKp->text(),
                      editKi->text(),
                      editKd->text());
