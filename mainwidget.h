@@ -5,6 +5,8 @@
 #include <QHostAddress>
 #include <QHostInfo>
 #include <QByteArray>
+#include <QTimer>
+
 
 QT_FORWARD_DECLARE_CLASS(GLWidget)
 QT_FORWARD_DECLARE_CLASS(QPushButton)
@@ -34,10 +36,11 @@ public slots:
     void onStartAccCalibration();
     void onStartGyroCalibration();
     void onStartMagCalibration();
-    void onHide3DPushed();
+    void onAskConfPushed();
     void onShowPidOutput();
     void onStartMovePushed();
     void onSetPID();
+    void onTimeToUpdateWidgets();
 
 protected:
     void closeEvent(QCloseEvent *event);
@@ -46,16 +49,16 @@ protected:
     void createUi();
     void createPlot();
     void executeCommand(QString command);
+    void setDisableUI(bool bDisable);
 
 private:
-    QTcpSocket tcpClient;
+    QTcpSocket   tcpClient;
     QHostAddress serverAddress;
-    QByteArray message;
-    QString receivedCommand;
-    int bytesWritten;
-    int bytesReceived;
-    QUdpSocket*   pUdpSocket;
-    int           udpPort;
+    QByteArray   message;
+    QString      receivedCommand;
+
+    QUdpSocket*  pUdpSocket;
+    int          udpPort;
 
     GLWidget* pGLWidget;
     Plot2D*   pPlotVal;
@@ -69,7 +72,7 @@ private:
     QPushButton* buttonMagCalibration;
     QPushButton* buttonShowPidOutput;
     QPushButton* buttonStartStop;
-    QPushButton* buttonHide3D;
+    QPushButton* buttonAskConf;
 
     QPushButton* buttonConnect;
     QLabel*      labelHost;
@@ -82,16 +85,17 @@ private:
     QLineEdit*   editMoveSpeedR;
 
     QPushButton* buttonSetPid;
-    QLabel* labelKp;
-    QLineEdit* editKp;
-    QLabel* labelKi;
-    QLineEdit* editKi;
-    QLabel* labelKd;
-    QLineEdit* editKd;
+    QLabel*      labelKp;
+    QLineEdit*   editKp;
+    QLabel*      labelKi;
+    QLineEdit*   editKi;
+    QLabel*      labelKd;
+    QLineEdit*   editKd;
 
     bool bRunInProgress;
     bool bShowPidInProgress;
     bool bMoveInProgress;
 
     float q0, q1, q2, q3;
+    QTimer timerUpdate;
 };

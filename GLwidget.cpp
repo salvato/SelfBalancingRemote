@@ -93,7 +93,7 @@ GLWidget::setRotation(float q0, float q1, float q2, float q3) {
 void
 GLWidget::initializeGL() {
     initializeOpenGLFunctions();
-    glClearColor(0, 0, 0, 1);
+    glClearColor(0, 0, 0.3, 1);
     initShaders();
     initTextures();
     // Enable depth buffer
@@ -126,7 +126,7 @@ GLWidget::initTextures() {
     // Load cube.png image
     texture = new QOpenGLTexture(QImage(":/cube.png").mirrored());
     // Set nearest filtering mode for texture minification
-    texture->setMinificationFilter(QOpenGLTexture::Nearest);
+    texture->setMinificationFilter(QOpenGLTexture::Linear);
     // Set bilinear filtering mode for texture magnification
     texture->setMagnificationFilter(QOpenGLTexture::Linear);
     // Wrap texture coordinates by repeating
