@@ -72,7 +72,7 @@ MainWidget::MainWidget(QWidget *parent)
     connect(&tcpClient, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(displayError(QAbstractSocket::SocketError)));
 
-    // Timer Event for Updating the Widgets
+    // Timer Event for Widgets Updating
     connect(&timerUpdate, SIGNAL(timeout()),
             this, SLOT(onTimeToUpdateWidgets()));
 }
@@ -101,7 +101,7 @@ MainWidget::keyPressEvent(QKeyEvent *e) {
 
 void
 MainWidget::createUi() {
-    buttonManual          = new QPushButton("Start PID",     this);
+    buttonManualControl   = new QPushButton("PID Control",     this);
     buttonConnect         = new QPushButton("Connect",   this);
     buttonMove            = new QPushButton("Move",      this);
     buttonSetPid          = new QPushButton("Set PID",   this);
@@ -113,6 +113,8 @@ MainWidget::createUi() {
     labelSpeedR    = new QLabel("R Speed", this);
     editMoveSpeedL = new QLineEdit("0.0", this);
     editMoveSpeedR = new QLineEdit("0.0", this);
+    editMoveSpeedL->setAlignment(Qt::AlignRight);
+    editMoveSpeedR->setAlignment(Qt::AlignRight);
 
     labelKp = new QLabel("Kp", this);
     labelKi = new QLabel("Ki", this);
@@ -120,13 +122,16 @@ MainWidget::createUi() {
     editKp  = new QLineEdit("1.0", this);
     editKi  = new QLineEdit("0.0", this);
     editKd  = new QLineEdit("0.0", this);
+    editKp->setAlignment(Qt::AlignRight);
+    editKi->setAlignment(Qt::AlignRight);
+    editKd->setAlignment(Qt::AlignRight);
 
     statusBar = new QStatusBar(this);
 
     pGLWidget = new GLWidget(this);
     createPlot();
 
-    connect(buttonManual, SIGNAL(clicked()),
+    connect(buttonManualControl, SIGNAL(clicked()),
             this, SLOT(onButtonManualPushed()));
     connect(buttonConnect, SIGNAL(clicked()),
             this, SLOT(onConnectToClient()));
@@ -141,7 +146,7 @@ MainWidget::createUi() {
 
 void
 MainWidget::setDisableUI(bool bDisable) {
-    buttonManual->setDisabled(bDisable);
+    buttonManualControl->setDisabled(bDisable);
     buttonMove->setDisabled(bDisable);
     buttonSetPid->setDisabled(bDisable);
 
@@ -188,6 +193,8 @@ MainWidget::initLayout() {
     firstButtonRow->addWidget(labelSpeedR);
     firstButtonRow->addWidget(editMoveSpeedR);
     firstButtonRow->addWidget(buttonMove);
+//    QSpacerItem *item = new QSpacerItem(2, 1, QSizePolicy::Expanding, QSizePolicy::Fixed);
+//    firstButtonRow->addSpacerItem(item);
 //
     firstButtonRow->addWidget(labelKp);
     firstButtonRow->addWidget(editKp);
@@ -197,7 +204,7 @@ MainWidget::initLayout() {
     firstButtonRow->addWidget(editKd);
     firstButtonRow->addWidget(buttonSetPid);
 //
-    firstButtonRow->addWidget(buttonManual);
+    firstButtonRow->addWidget(buttonManualControl);
 
     secondButtonRow = new QHBoxLayout;
     secondButtonRow->addWidget(labelHost);
@@ -377,16 +384,16 @@ MainWidget::onButtonManualPushed() {
             message.append("S#"); // Set Manual Control
             tcpClient.write(message);
             bPIDInControl = false;
-            buttonManual->setText("Start PID");
+            buttonManualControl->setText("PID Control");
             setDisableUI(false);
         }
         else {
             message.append("G#"); // Go !
             tcpClient.write(message);
             bPIDInControl = true;
-            buttonManual->setText("Start Manual");
+            buttonManualControl->setText("Manual Control");
             setDisableUI(true);
-            buttonManual->setEnabled(true);
+            buttonManualControl->setEnabled(true);
         }
     }
 }

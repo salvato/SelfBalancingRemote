@@ -65,7 +65,7 @@ private:
     QHBoxLayout* secondButtonRow;
     QHBoxLayout* thirdButtonRow;
 
-    QPushButton* buttonManual;
+    QPushButton* buttonManualControl;
 
     QPushButton* buttonConnect;
     QLabel*      labelHost;
