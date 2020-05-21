@@ -50,9 +50,9 @@ MainWidget::MainWidget(QWidget *parent)
     , pPlotVal(nullptr)
     // Status
     , bPIDInControl(false)
-    , bMoveInProgress(false)
 {
     initLayout();
+    restoreSettings();
 
     pUdpSocket = new QUdpSocket(this);
     if(!pUdpSocket->bind(QHostAddress::Any, udpPort)) {
@@ -87,6 +87,7 @@ MainWidget::closeEvent(QCloseEvent *event) {
     Q_UNUSED(event)
     if(pUdpSocket)
         delete pUdpSocket;
+    saveSettings();
 }
 
 
@@ -116,15 +117,19 @@ MainWidget::createUi() {
     editMoveSpeedL->setAlignment(Qt::AlignRight);
     editMoveSpeedR->setAlignment(Qt::AlignRight);
 
-    labelKp = new QLabel("Kp", this);
-    labelKi = new QLabel("Ki", this);
-    labelKd = new QLabel("Kd", this);
-    editKp  = new QLineEdit("1.0", this);
-    editKi  = new QLineEdit("0.0", this);
-    editKd  = new QLineEdit("0.0", this);
+    labelKp       = new QLabel("Kp", this);
+    labelKi       = new QLabel("Ki", this);
+    labelKd       = new QLabel("Kd", this);
+    labelSetpoint = new QLabel("Setpoint", this);
+    editKp        = new QLineEdit("1.0", this);
+    editKi        = new QLineEdit("0.0", this);
+    editKd        = new QLineEdit("0.0", this);
+    editSetpoint  = new QLineEdit("0.0", this);
+
     editKp->setAlignment(Qt::AlignRight);
     editKi->setAlignment(Qt::AlignRight);
     editKd->setAlignment(Qt::AlignRight);
+    editSetpoint->setAlignment(Qt::AlignRight);
 
     statusBar = new QStatusBar(this);
 
@@ -141,6 +146,22 @@ MainWidget::createUi() {
             this, SLOT(onSetPIDPushed()));
 
     setDisableUI(true);
+}
+
+
+void
+MainWidget::restoreSettings() {
+    QSettings settings;
+    // Tcp Server
+    QString sServer = settings.value("tcpServer", "raspberrypi.local").toString();
+    editHostName->setText(sServer);
+}
+
+
+void
+MainWidget::saveSettings() {
+    QSettings settings;
+    settings.setValue("tcpServer", editHostName->text());
 }
 
 
@@ -202,14 +223,15 @@ MainWidget::initLayout() {
     firstButtonRow->addWidget(editKi);
     firstButtonRow->addWidget(labelKd);
     firstButtonRow->addWidget(editKd);
+    firstButtonRow->addWidget(labelSetpoint);
+    firstButtonRow->addWidget(editSetpoint);
     firstButtonRow->addWidget(buttonSetPid);
-//
-    firstButtonRow->addWidget(buttonManualControl);
 
     secondButtonRow = new QHBoxLayout;
     secondButtonRow->addWidget(labelHost);
     secondButtonRow->addWidget(editHostName);
     secondButtonRow->addWidget(buttonConnect);
+    secondButtonRow->addWidget(buttonManualControl);
 
 //    thirdButtonRow = new QHBoxLayout;
 
@@ -356,21 +378,26 @@ MainWidget::executeCommand(QString command) {
         }
     }
     else if(cmd == 'p') { // PID Input & Output values
-        if(tokens.count() == 3) {
+        if(tokens.count() > 1) {
             double x = tokens.at(0).toDouble();
             double input = tokens.at(1).toDouble();
-            double output = tokens.at(2).toDouble();
             pPlotVal->NewPoint(4, x, double(input));
-            pPlotVal->NewPoint(5, x, double(output));
+            if(tokens.count() == 3) {
+                double output = tokens.at(2).toDouble();
+                pPlotVal->NewPoint(5, x, double(output));
+            }
+            else
+                pPlotVal->ClearDataSet(5);
         }
     }
     else if(cmd == 'c') { // Robot Configuration Values
-        if(tokens.count() == 5) {
+        if(tokens.count() == 6) {
             editKp->setText(tokens.at(0));
             editKi->setText(tokens.at(1));
             editKd->setText(tokens.at(2));
-//            motorSpeedFactorLeft  = tokens.at(3).toDouble();
-//            motorSpeedFactorRight = tokens.at(4).toDouble();
+            //motorSpeedFactorLeft  = tokens.at(3).toDouble();
+            //motorSpeedFactorRight = tokens.at(4).toDouble();
+            editSetpoint->setText(tokens.at(5));
         }
     }
 }
@@ -393,6 +420,11 @@ MainWidget::onButtonManualPushed() {
             bPIDInControl = true;
             buttonManualControl->setText("Manual Control");
             setDisableUI(true);
+            buttonSetPid->setEnabled(true);
+
+            editKp->setEnabled(true);
+            editKi->setEnabled(true);
+            editKd->setEnabled(true);
             buttonManualControl->setEnabled(true);
         }
     }
@@ -411,23 +443,10 @@ MainWidget::askConfiguration() {
 
 void
 MainWidget::onStartMovePushed() {
-    if(bMoveInProgress) {
-        if(tcpClient.isOpen()) {
-            message.clear();
-            message.append("H#"); // Halt Move !
-            tcpClient.write(message);
-            bMoveInProgress = false;
-            buttonMove->setText("Move");
-        }
-    }
-    else {
-        if(tcpClient.isOpen()) {
-            QString sMessage = QString("M %1 %2#")
-                    .arg(editMoveSpeedL->text(), editMoveSpeedR->text()); // Start Moving
-            tcpClient.write(sMessage.toLatin1());
-            bMoveInProgress = true;
-            buttonMove->setText("Halt");
-        }
+    if(tcpClient.isOpen()) {
+        QString sMessage = QString("M %1 %2#")
+                .arg(editMoveSpeedL->text(), editMoveSpeedR->text()); // Start Moving
+        tcpClient.write(sMessage.toLatin1());
     }
 }
 
@@ -435,10 +454,11 @@ MainWidget::onStartMovePushed() {
 void
 MainWidget::onSetPIDPushed() {
     if(tcpClient.isOpen()) {
-        QString sMessage = QString("P %1 %2 %3#")
+        QString sMessage = QString("P %1 %2 %3 %4#")
                 .arg(editKp->text(),
                      editKi->text(),
-                     editKd->text());
+                     editKd->text(),
+                     editSetpoint->text());
         tcpClient.write(sMessage.toLatin1());
     }
 }

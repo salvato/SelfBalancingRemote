@@ -43,6 +43,8 @@ protected:
     void closeEvent(QCloseEvent *event);
     void keyPressEvent(QKeyEvent *event);
     void initLayout();
+    void restoreSettings();
+    void saveSettings();
     void createUi();
     void createPlot();
     void executeCommand(QString command);
@@ -84,11 +86,12 @@ private:
     QLineEdit*   editKi;
     QLabel*      labelKd;
     QLineEdit*   editKd;
+    QLabel*      labelSetpoint;
+    QLineEdit*   editSetpoint;
 
     QStatusBar*  statusBar;
 
     bool bPIDInControl;
-    bool bMoveInProgress;
 
     float q0, q1, q2, q3;
     QTimer timerUpdate;
