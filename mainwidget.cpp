@@ -102,7 +102,8 @@ MainWidget::keyPressEvent(QKeyEvent *e) {
 
 void
 MainWidget::createUi() {
-    buttonManualControl   = new QPushButton("PID Control",     this);
+    buttonClose           = new QPushButton("Close",     this);
+    buttonManualControl   = new QPushButton("PID Ctrl",  this);
     buttonConnect         = new QPushButton("Connect",   this);
     buttonMove            = new QPushButton("Move",      this);
     buttonSetPid          = new QPushButton("Set PID",   this);
@@ -136,6 +137,8 @@ MainWidget::createUi() {
     pGLWidget = new GLWidget(this);
     createPlot();
 
+    connect(buttonClose, SIGNAL(clicked()),
+            this, SLOT(onButtonClosePushed()));
     connect(buttonManualControl, SIGNAL(clicked()),
             this, SLOT(onButtonManualPushed()));
     connect(buttonConnect, SIGNAL(clicked()),
@@ -167,6 +170,7 @@ MainWidget::saveSettings() {
 
 void
 MainWidget::setDisableUI(bool bDisable) {
+    buttonClose->setDisabled(bDisable);
     buttonManualControl->setDisabled(bDisable);
     buttonMove->setDisabled(bDisable);
     buttonSetPid->setDisabled(bDisable);
@@ -231,6 +235,7 @@ MainWidget::initLayout() {
     secondButtonRow->addWidget(labelHost);
     secondButtonRow->addWidget(editHostName);
     secondButtonRow->addWidget(buttonConnect);
+    secondButtonRow->addWidget(buttonClose);
     secondButtonRow->addWidget(buttonManualControl);
 
 //    thirdButtonRow = new QHBoxLayout;
@@ -404,6 +409,16 @@ MainWidget::executeCommand(QString command) {
 
 
 void
+MainWidget::onButtonClosePushed() {
+    if(tcpClient.isOpen()) {
+        message.clear();
+        message.append("K#"); // Kill Remote Program
+        tcpClient.write(message);
+    }
+}
+
+
+void
 MainWidget::onButtonManualPushed() {
     if(tcpClient.isOpen()) {
         message.clear();
@@ -411,7 +426,7 @@ MainWidget::onButtonManualPushed() {
             message.append("S#"); // Set Manual Control
             tcpClient.write(message);
             bPIDInControl = false;
-            buttonManualControl->setText("PID Control");
+            buttonManualControl->setText("PID Ctrl");
             setDisableUI(false);
         }
         else {

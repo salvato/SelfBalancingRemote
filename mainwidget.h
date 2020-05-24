@@ -27,6 +27,7 @@ public:
     ~MainWidget();
 
 public slots:
+    void onButtonClosePushed();
     void onConnectToClient();
     void handleLookup(QHostInfo hostInfo);
     void displayError(QAbstractSocket::SocketError socketError);
@@ -69,6 +70,7 @@ private:
 
     QPushButton* buttonManualControl;
 
+    QPushButton* buttonClose;
     QPushButton* buttonConnect;
     QLabel*      labelHost;
     QLineEdit*   editHostName;

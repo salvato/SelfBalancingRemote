@@ -37,6 +37,7 @@ Plot2D::Plot2D(QWidget *parent, QString Title)
     setWindowFlags(windowFlags() |  Qt::WindowMinMaxButtonsHint);
     setMouseTracking(true);
 //  setAttribute(Qt::WA_AlwaysShowToolTips);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setWindowIcon(QIcon("qrc:/plot.png"));
     QSettings settings;
     restoreGeometry(settings.value(sTitle+QString("Plot2D")).toByteArray());

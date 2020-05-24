@@ -58,6 +58,7 @@ GLWidget::GLWidget(QWidget *parent)
     , geometries(0)
     , texture(0)
 {
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 
 
