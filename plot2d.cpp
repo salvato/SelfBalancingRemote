@@ -38,7 +38,7 @@ Plot2D::Plot2D(QWidget *parent, QString Title)
     setMouseTracking(true);
 //  setAttribute(Qt::WA_AlwaysShowToolTips);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    setWindowIcon(QIcon("qrc:/plot.png"));
+    setWindowIcon(QIcon(":/plot.png"));
     QSettings settings;
     restoreGeometry(settings.value(sTitle+QString("Plot2D")).toByteArray());
     xMarker      = 0.0;

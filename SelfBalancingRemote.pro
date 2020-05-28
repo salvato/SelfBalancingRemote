@@ -45,6 +45,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 
 DISTFILES += \
+    10_DOF.png \
     LICENSE \
     README.md \
     cube.png \
@@ -53,5 +54,6 @@ DISTFILES += \
     vshader.glsl
 
 RESOURCES += \
+    resources.qrc \
     shaders.qrc \
     textures.qrc

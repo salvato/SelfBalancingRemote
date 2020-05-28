@@ -18,6 +18,7 @@
 #include <QVBoxLayout>
 #include <QKeyEvent>
 #include <QStatusBar>
+#include <QIcon>
 
 
 //==============================================================
@@ -29,6 +30,7 @@
 //      C           Ask Robot Configuration
 //      M           Start Moving (at a given speed Left & Rigth)
 //      H           Stop Moving
+//      K           Kill Remote Program
 //==============================================================
 
 
@@ -51,6 +53,7 @@ MainWidget::MainWidget(QWidget *parent)
     // Status
     , bPIDInControl(false)
 {
+    setWindowIcon(QIcon(":/10DOF.png"));
     initLayout();
     restoreSettings();
 
@@ -178,6 +181,7 @@ MainWidget::setDisableUI(bool bDisable) {
     editKp->setDisabled(bDisable);
     editKi->setDisabled(bDisable);
     editKd->setDisabled(bDisable);
+    editSetpoint->setDisabled(bDisable);
 
     editMoveSpeedL->setDisabled(bDisable);
     editMoveSpeedR->setDisabled(bDisable);
@@ -218,8 +222,6 @@ MainWidget::initLayout() {
     firstButtonRow->addWidget(labelSpeedR);
     firstButtonRow->addWidget(editMoveSpeedR);
     firstButtonRow->addWidget(buttonMove);
-//    QSpacerItem *item = new QSpacerItem(2, 1, QSizePolicy::Expanding, QSizePolicy::Fixed);
-//    firstButtonRow->addSpacerItem(item);
 //
     firstButtonRow->addWidget(labelKp);
     firstButtonRow->addWidget(editKp);
