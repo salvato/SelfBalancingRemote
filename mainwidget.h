@@ -34,7 +34,7 @@ public slots:
     void onServerConnected();
     void onServerDisconnected();
     void onNewDataAvailable();
-    void readPendingDatagrams();
+    void onReadPendingDatagrams();
     void onButtonManualPushed();
     void onStartMovePushed();
     void onSetPIDPushed();
