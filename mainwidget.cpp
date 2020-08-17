@@ -63,9 +63,11 @@ MainWidget::MainWidget(QWidget *parent)
         setDisabled(true);
     }
 
-    // Network events
+    // Network UDP events
     connect(pUdpSocket, SIGNAL(readyRead()),
-            this, SLOT(readPendingDatagrams()));
+            this, SLOT(onReadPendingDatagrams()));
+
+    // Network TCP events
     connect(&tcpClient, SIGNAL(connected()),
             this, SLOT(onServerConnected()));
     connect(&tcpClient, SIGNAL(disconnected()),
@@ -78,6 +80,7 @@ MainWidget::MainWidget(QWidget *parent)
     // Timer Event for Widgets Updating
     connect(&timerUpdate, SIGNAL(timeout()),
             this, SLOT(onTimeToUpdateWidgets()));
+    timerUpdate.start(100);
 }
 
 
@@ -327,6 +330,7 @@ MainWidget::onServerDisconnected() {
     setDisableUI(true);
     buttonConnect->setText("Connect");
     editHostName->setEnabled(true);
+    statusBar->showMessage(QString("Disconnected"));
 }
 
 
@@ -346,7 +350,7 @@ MainWidget::onNewDataAvailable() {
 
 
 void
-MainWidget::readPendingDatagrams() {
+MainWidget::onReadPendingDatagrams() {
     while(pUdpSocket->hasPendingDatagrams()) {
         QNetworkDatagram datagram = pUdpSocket->receiveDatagram();
         QString sReceived = QString(datagram.data());
