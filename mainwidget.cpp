@@ -411,6 +411,10 @@ MainWidget::executeCommand(QString command) {
             editSetpoint->setText(tokens.at(5));
         }
     }
+    else if(cmd == 'r') { // Reset
+        pPlotVal->ClearDataSet(4);
+        pPlotVal->ClearDataSet(5);
+    }
 }
 
 
